@@ -7,3 +7,10 @@ VALUES (
     $1
 )
 RETURNING *;
+
+-- name: ResetUsers :exec
+DELETE FROM users;
+
+-- name: GetUserById :one
+SELECT * FROM users
+WHERE id = $1;
