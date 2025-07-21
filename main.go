@@ -18,6 +18,7 @@ type appConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries *database.Queries
 	platform string
+	secret string
 }
 
 type User struct {
@@ -25,6 +26,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token    string    `json:"token"`
 }
 
 func main() {
@@ -43,12 +45,15 @@ func main() {
 		log.Fatal("PLATFORM must be set")
 	}
 
+	secret:= os.Getenv("SECRET")
+
 	dbQueries := database.New(db)
 
 	apiCfg := appConfig{
 		fileserverHits: atomic.Int32{},
 		dbQueries: dbQueries,
-		platform:       platform,
+		platform: platform,
+		secret: secret,
 	}
 
 	mux := http.NewServeMux()

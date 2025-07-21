@@ -3,21 +3,22 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/ankit-ahlawat-sudo/Chirpy/internal/auth"
 	"github.com/ankit-ahlawat-sudo/Chirpy/internal/database"
 )
 
-type requestBody struct {
-	Email string `json:"email"`
-	Password string `json:"password"`
-}
-
 func(cfg *appConfig) handlerUserAddition(w http.ResponseWriter, r *http.Request){
+
+	type paremeters struct {
+		Email string `json:"email"`
+		Password string `json:"password"`
+	}
 
 	decoder:= json.NewDecoder(r.Body)
 
-	reqBody:= requestBody{}
+	reqBody:= paremeters{}
 
 	if err:= decoder.Decode(&reqBody); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
@@ -51,6 +52,12 @@ func(cfg *appConfig) handlerUserAddition(w http.ResponseWriter, r *http.Request)
 }
 
 func(cfg *appConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
+	type requestBody struct {
+		Email            string `json:"email"`
+		Password         string `json:"password"`
+		ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
+	}
+
 	decoder:= json.NewDecoder(r.Body)
 
 	reqBody:= requestBody{}
@@ -75,10 +82,26 @@ func(cfg *appConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var expiresInSeconds int
+	if reqBody.ExpiresInSeconds != nil {
+		expiresInSeconds = *reqBody.ExpiresInSeconds
+	} else {
+		expiresInSeconds = 3600
+	}
+
+	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(expiresInSeconds)*time.Second)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't generate token", err)
+		return
+	}
+
+
 	respondWithJSON(w, 200, User{
 		ID: user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		Token: token,
 	})
 }
