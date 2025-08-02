@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ankit-ahlawat-sudo/Chirpy/internal/auth"
 	"github.com/ankit-ahlawat-sudo/Chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -21,7 +22,6 @@ type Chirp struct{
 func (cfg *appConfig) addChirp(w http.ResponseWriter, r *http.Request){
 	type ChirpMessage struct{
 		Body string `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
 	}
 	decoder:= json.NewDecoder(r.Body)
 
@@ -38,6 +38,19 @@ func (cfg *appConfig) addChirp(w http.ResponseWriter, r *http.Request){
 		return
 	}
 
+
+	headerToken,err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT", err)
+		return
+	}
+
+	userId,err:= auth.ValidateJWT(headerToken, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't Validation JWT", err)
+		return
+	}
+
 	badWords := map[string]struct{}{
 		"kerfuffle": {},
 		"sharbert":  {},
@@ -47,7 +60,7 @@ func (cfg *appConfig) addChirp(w http.ResponseWriter, r *http.Request){
 
 	chirp, err:= cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body: cleaned,
-		UserID: chirpMessage.UserId,
+		UserID: userId,
 	})
 
 	if err != nil {
@@ -83,7 +96,7 @@ func(cfg *appConfig) getChirpsByCreateTime(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	respondWithJSON(w, 200, apiChirps)
+	respondWithJSON(w, 200, apiChirps) 
 }
 
 func(cfg *appConfig) getChirpsById(w http.ResponseWriter, r *http.Request) {

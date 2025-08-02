@@ -55,7 +55,12 @@ func(cfg *appConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
 	type requestBody struct {
 		Email            string `json:"email"`
 		Password         string `json:"password"`
-		ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
+	}
+
+	type response struct {
+		User 
+		Token  string `json:"token"` 
 	}
 
 	decoder:= json.NewDecoder(r.Body)
@@ -83,9 +88,9 @@ func(cfg *appConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var expiresInSeconds int
-	if reqBody.ExpiresInSeconds != nil {
-		expiresInSeconds = *reqBody.ExpiresInSeconds
-	} else {
+	if reqBody.ExpiresInSeconds != 0 {
+		expiresInSeconds = reqBody.ExpiresInSeconds
+	} else if reqBody.ExpiresInSeconds > 3600 || reqBody.ExpiresInSeconds <=0 {
 		expiresInSeconds = 3600
 	}
 
@@ -96,12 +101,13 @@ func(cfg *appConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-	respondWithJSON(w, 200, User{
-		ID: user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email: user.Email,
+	respondWithJSON(w, 200, response{
+		User: User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
 		Token: token,
 	})
 }
