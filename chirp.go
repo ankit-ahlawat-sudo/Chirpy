@@ -77,6 +77,47 @@ func (cfg *appConfig) addChirp(w http.ResponseWriter, r *http.Request){
 	})
 	
 }
+func (cfg *appConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
+
+	chirpIDstring:= r.PathValue("chirpID")
+	chirpID, err:= uuid.Parse(chirpIDstring)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid chirp ID", err)
+		return
+	}
+
+    headerToken,err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT", err)
+		return
+	}
+
+	userId,err:= auth.ValidateJWT(headerToken, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't Validation JWT", err)
+		return
+	}
+
+	chirp, err:= cfg.dbQueries.GetChirpById(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "chirp not found", err)
+		return
+	}
+
+	if chirp.UserID != userId {
+		respondWithError(w, http.StatusForbidden, "Not authenticated for this action", err)
+		return
+	}
+
+	err = cfg.dbQueries.DeleteChirpById(r.Context(), chirpID)
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Chirp not found to delete", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, nil)
+}
 
 func(cfg *appConfig) getChirpsByCreateTime(w http.ResponseWriter, r *http.Request) {
 	chirps, err:= cfg.dbQueries.GetChirpsDortedByCreateTime(r.Context())
@@ -108,7 +149,7 @@ func(cfg *appConfig) getChirpsById(w http.ResponseWriter, r *http.Request) {
 	}
 	chirp, err:= cfg.dbQueries.GetChirpById(r.Context(), chirpID)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Not able to fetch the chirp", err)
+		respondWithError(w, http.StatusNotFound, "Not able to fetch the chirp", err)
 		return
 	}
 
