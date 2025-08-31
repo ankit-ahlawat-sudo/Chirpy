@@ -6,10 +6,8 @@ import (
 	"net/http"
 	"os"
 	"sync/atomic"
-	"time"
 
 	"github.com/ankit-ahlawat-sudo/Chirpy/internal/database"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -19,13 +17,6 @@ type appConfig struct {
 	dbQueries *database.Queries
 	platform string
 	secret string
-}
-
-type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
 }
 
 func main() {
@@ -72,6 +63,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", apiCfg.handleRevoke)
 	mux.HandleFunc("PUT /api/users", apiCfg.handeEmailUpdate)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.deleteChirp)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeToRed)
 
 	srv := &http.Server{
 		Addr: ":" + port,

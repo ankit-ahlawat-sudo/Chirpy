@@ -7,7 +7,16 @@ import (
 
 	"github.com/ankit-ahlawat-sudo/Chirpy/internal/auth"
 	"github.com/ankit-ahlawat-sudo/Chirpy/internal/database"
+	"github.com/google/uuid"
 )
+
+type User struct {
+	ID        	uuid.UUID `json:"id"`
+	CreatedAt 	time.Time `json:"created_at"`
+	UpdatedAt 	time.Time `json:"updated_at"`
+	Email       string    `json:"email"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
+}
 
 func(cfg *appConfig) handlerUserAddition(w http.ResponseWriter, r *http.Request){
 
@@ -47,6 +56,7 @@ func(cfg *appConfig) handlerUserAddition(w http.ResponseWriter, r *http.Request)
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	})
 
 }
@@ -120,6 +130,7 @@ func(cfg *appConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			IsChirpyRed: user.IsChirpyRed.Bool,
 		},
 		Token: token,
 		RefreshToken: refreshToken,
@@ -174,6 +185,7 @@ func(cfg *appConfig) handeEmailUpdate(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			IsChirpyRed: user.IsChirpyRed.Bool,
 	})
 
 }
@@ -222,5 +234,45 @@ func(cfg *appConfig) handleRevoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func(cfg *appConfig) upgradeToRed(w http.ResponseWriter, r *http.Request) {
+	type data struct {
+		User_id string `json:"user_id"`
+	}
+	type request struct {
+		Event string `json:"event"`
+		Data data `json:"data"`
+	}
+
+	decoder:= json.NewDecoder(r.Body)
+
+	var requestData request
+
+	if err:= decoder.Decode(&requestData); err!= nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	if requestData.Event!= "user.upgraded" {
+		respondWithJSON(w, http.StatusNoContent, nil)
+		return
+	}
+
+	validUuid, err:= uuid.Parse(requestData.Data.User_id)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid ID", err)
+		return
+	}
+
+	err= cfg.dbQueries.UpgradeToRedById(r.Context(), validUuid)
+
+	if err != nil {
+		respondWithError(w,http.StatusNotFound, "id not found to upgrade", nil)
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, nil)
+
 }
 
