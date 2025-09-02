@@ -17,6 +17,7 @@ type appConfig struct {
 	dbQueries *database.Queries
 	platform string
 	secret string
+	polkaKey string
 }
 
 func main() {
@@ -35,6 +36,8 @@ func main() {
 		log.Fatal("PLATFORM must be set")
 	}
 
+	polkaKey:= os.Getenv("POLKA_KEY")
+
 	secret:= os.Getenv("SECRET")
 
 	dbQueries := database.New(db)
@@ -44,6 +47,7 @@ func main() {
 		dbQueries: dbQueries,
 		platform: platform,
 		secret: secret,
+		polkaKey: polkaKey,
 	}
 
 	mux := http.NewServeMux()

@@ -247,6 +247,18 @@ func(cfg *appConfig) upgradeToRed(w http.ResponseWriter, r *http.Request) {
 
 	decoder:= json.NewDecoder(r.Body)
 
+	apiKey, err := auth.GetAPIKey(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "invalid ID", err)
+		return
+	}
+
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "invalid ID", err)
+		return
+	}
+
 	var requestData request
 
 	if err:= decoder.Decode(&requestData); err!= nil {
