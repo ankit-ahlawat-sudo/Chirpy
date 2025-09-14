@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -119,8 +120,30 @@ func (cfg *appConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusNoContent, nil)
 }
 
-func(cfg *appConfig) getChirpsByCreateTime(w http.ResponseWriter, r *http.Request) {
-	chirps, err:= cfg.dbQueries.GetChirpsDortedByCreateTime(r.Context())
+func(cfg *appConfig) getChirps(w http.ResponseWriter, r *http.Request) {
+	author_id := r.URL.Query().Get("author_id")
+	sortType := r.URL.Query().Get("sort")
+	var chirps []database.Chirp
+	var err error
+	if author_id != "" {
+		author_uuid, errt := uuid.Parse(author_id)
+		if errt != nil {
+			respondWithError(w, http.StatusBadRequest, "worung uuid", errt)
+			return
+		}
+		chirps, err = cfg.dbQueries.GetChirpsSortedByCreateTimeForAuthor(r.Context(), author_uuid)
+	} else {
+		chirps, err = cfg.dbQueries.GetChirpsSortedByCreateTime(r.Context())
+	}
+
+	if sortType != "" {
+		if sortType == "desc" {
+			sort.Slice(chirps, func(i, j int) bool { 
+				return chirps[i].CreatedAt.After(chirps[j].CreatedAt);
+			})
+		}
+	}
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Not able to get the chirps", err)
 		return

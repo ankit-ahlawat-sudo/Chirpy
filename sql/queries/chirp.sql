@@ -9,8 +9,11 @@ VALUES (
 )
 RETURNING *;
 
--- name: GetChirpsDortedByCreateTime :many
+-- name: GetChirpsSortedByCreateTime :many
 SELECT * FROM chirp ORDER BY created_at;
+
+-- name: GetChirpsSortedByCreateTimeForAuthor :many
+SELECT * FROM chirp WHERE user_id = $1 ORDER BY created_at;
 
 -- name: GetChirpById :one
 SELECT * FROM chirp WHERE id = $1;
